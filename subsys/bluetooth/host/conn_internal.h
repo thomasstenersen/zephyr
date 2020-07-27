@@ -138,7 +138,10 @@ struct bt_conn {
 
 	bt_conn_state_t		state;
 
-	uint16_t		        rx_len;
+#if defined(CONFIG_BT_ISO)
+	uint16_t rx_len;
+#endif	/* CONFIG_BT_ISO */
+
 	struct net_buf		*rx;
 
 	/* Sent but not acknowledged TX packets with a callback */
