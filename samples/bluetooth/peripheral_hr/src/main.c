@@ -16,6 +16,7 @@
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
+#include <bluetooth/hci_err.h>
 #include <bluetooth/conn.h>
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
@@ -23,6 +24,7 @@
 #include <bluetooth/services/hrs.h>
 
 struct bt_conn *default_conn;
+static struct k_delayed_work conn_update_work;
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -32,6 +34,24 @@ static const struct bt_data ad[] = {
 		      BT_UUID_16_ENCODE(BT_UUID_DIS_VAL))
 };
 
+static void conn_param_update_cb(struct k_work * work)
+{
+	static int conn_int = 20;
+	if (!default_conn) {
+		return;
+	}
+
+	int err = bt_conn_le_param_update(default_conn, BT_LE_CONN_PARAM(conn_int, conn_int, 0, 400));
+	if (err) {
+		printk("Conn param update failed (err %d)\n", err);
+		bt_conn_disconnect(default_conn, BT_HCI_ERR_LOCALHOST_TERM_CONN);
+	}
+
+	k_delayed_work_submit(&conn_update_work, K_MSEC(1000));
+	printk("Called conn update\n");
+	conn_int += 40;
+}
+
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	if (err) {
@@ -39,6 +59,8 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	} else {
 		default_conn = bt_conn_ref(conn);
 		printk("Connected\n");
+		k_delayed_work_init(&conn_update_work, conn_param_update_cb);
+		k_delayed_work_submit(&conn_update_work, K_MSEC(500));
 	}
 }
 
