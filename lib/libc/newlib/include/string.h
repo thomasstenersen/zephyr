@@ -30,6 +30,8 @@ char *strtok_r(char *__restrict, const char *__restrict, char **__restrict);
 size_t strnlen(const char *, size_t);
 #endif
 
+char * strdup(const char *str1);
+
 #ifdef __cplusplus
 }
 #endif
